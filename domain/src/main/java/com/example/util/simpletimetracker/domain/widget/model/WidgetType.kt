@@ -5,5 +5,6 @@ enum class WidgetType {
     UNIVERSAL,
     GRID,
     STATISTICS_CHART,
+    GOALS,
     QUICK_SETTINGS,
 }

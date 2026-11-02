@@ -453,6 +453,7 @@ class UpdateExternalViewsInteractor @Inject constructor(
         runUpdates(
             Update.WidgetSingleTypes,
             Update.WidgetGrid,
+            Update.WidgetGoals,
         )
     }
 
@@ -550,6 +551,10 @@ class UpdateExternalViewsInteractor @Inject constructor(
             }
             is Update.WidgetStatistics -> {
                 widgetInteractor.updateWidgets(WidgetType.STATISTICS_CHART)
+                widgetInteractor.updateWidgets(WidgetType.GOALS)
+            }
+            is Update.WidgetGoals -> {
+                widgetInteractor.updateWidgets(WidgetType.GOALS)
             }
             is Update.WidgetQuickSettings -> {
                 widgetInteractor.updateWidgets(WidgetType.QUICK_SETTINGS)
@@ -615,6 +620,7 @@ class UpdateExternalViewsInteractor @Inject constructor(
         data class NotificationTypeHide(val typeId: Long) : Update
         data object NotificationWithControls : Update
         data object WidgetStatistics : Update
+        data object WidgetGoals : Update
         data object WidgetQuickSettings : Update
         data object WidgetUniversal : Update
         data object WidgetGrid : Update

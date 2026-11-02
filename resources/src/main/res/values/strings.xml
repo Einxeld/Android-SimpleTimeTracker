@@ -609,6 +609,9 @@ Example:<br/>
     <string name="widget_grid_name">Grid</string>
     <string name="widget_universal_name">Universal</string>
     <string name="widget_statistics_chart_name">Statistics Chart</string>
+    <string name="widget_goals_name">Goals</string>
+    <string name="widget_goals_empty">No active goals</string>
+    <string name="widget_refresh">Refresh goals</string>
     <string name="widget_quick_settings_name">Quick settings</string>
     <string name="widget_load_error">Not found</string>
     <string name="widget_statistics_ignore_new_items">Ignore new items added later</string>

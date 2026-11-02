@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_goals"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp">
+
+        <TextView
+            android:id="@+id/tvWidgetGoalsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:text="@string/widget_goals_name"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnWidgetGoalsRefresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/widget_refresh"
+            android:padding="8dp"
+            android:src="@drawable/refresh"
+            android:tint="@android:color/white" />
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tvWidgetGoalsEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="@string/widget_goals_empty"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <ListView
+        android:id="@+id/listWidgetGoals"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:cacheColorHint="@android:color/transparent"
+        android:divider="#33FFFFFF"
+        android:dividerHeight="1dp"
+        android:scrollbars="vertical"
+        android:stackFromBottom="false" />
+</LinearLayout>

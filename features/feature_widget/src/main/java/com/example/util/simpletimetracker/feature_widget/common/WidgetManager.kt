@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import com.example.util.simpletimetracker.domain.widget.model.WidgetType
 import com.example.util.simpletimetracker.feature_widget.grid.WidgetGridProvider
+import com.example.util.simpletimetracker.feature_widget.goals.WidgetGoalsProvider
 import com.example.util.simpletimetracker.feature_widget.quickSettings.WidgetQuickSettingsProvider
 import com.example.util.simpletimetracker.feature_widget.single.WidgetSingleProvider
 import com.example.util.simpletimetracker.feature_widget.statistics.WidgetStatisticsChartProvider
@@ -69,6 +70,7 @@ class WidgetManager @Inject constructor(
                 WidgetType.GRID -> WidgetGridProvider::class.java
                 WidgetType.UNIVERSAL -> WidgetUniversalProvider::class.java
                 WidgetType.STATISTICS_CHART -> WidgetStatisticsChartProvider::class.java
+                WidgetType.GOALS -> WidgetGoalsProvider::class.java
                 WidgetType.QUICK_SETTINGS -> WidgetQuickSettingsProvider::class.java
             }
         }

@@ -25,5 +25,7 @@ dependencies {
     implementation(libs.ktx.navigationUi)
     implementation(libs.google.dagger)
 
+    testImplementation(libs.test.junit)
+
     ksp(libs.kapt.dagger)
 }
