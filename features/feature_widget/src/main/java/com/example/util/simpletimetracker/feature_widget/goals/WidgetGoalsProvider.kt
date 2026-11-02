@@ -79,4 +79,5 @@ class WidgetGoalsProvider : AppWidgetProvider() {
         }
         return PendingIntent.getBroadcast(context, widgetId, intent, PendingIntents.getFlags())
     }
+
 }
