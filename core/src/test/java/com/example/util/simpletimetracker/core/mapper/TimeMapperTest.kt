@@ -151,6 +151,52 @@ class TimeMapperTest {
         }
     }
 
+    class FormatIntervalWithoutZeroMinutesTest {
+
+        @Before
+        fun before() {
+            initStrings()
+            `when`(localeProvider.get()).thenReturn(Locale.getDefault())
+        }
+
+        @Test
+        fun formatIntervalOmitsZeroMinutesOnlyWhenLargerUnitsArePresent() {
+            val subject = TimeMapper(
+                localeProvider = localeProvider,
+                resourceRepo = resourceRepo,
+                currentTimestampProvider = currentTimestampProvider,
+            )
+
+            assertEquals(
+                "8h",
+                subject.formatInterval(
+                    interval = 8 * hourInMs,
+                    forceSeconds = false,
+                    durationFormat = DurationFormat.HOURS,
+                    showZeroMinutes = false,
+                ),
+            )
+            assertEquals(
+                "8h 1m",
+                subject.formatInterval(
+                    interval = 8 * hourInMs + minuteInMs,
+                    forceSeconds = false,
+                    durationFormat = DurationFormat.HOURS,
+                    showZeroMinutes = false,
+                ),
+            )
+            assertEquals(
+                "0m",
+                subject.formatInterval(
+                    interval = 0,
+                    forceSeconds = false,
+                    durationFormat = DurationFormat.HOURS,
+                    showZeroMinutes = false,
+                ),
+            )
+        }
+    }
+
     @RunWith(Parameterized::class)
     class FormatIntervalDaysTest(
         private val input: Long,

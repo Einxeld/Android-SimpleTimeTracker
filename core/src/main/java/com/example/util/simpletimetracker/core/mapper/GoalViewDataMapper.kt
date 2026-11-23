@@ -167,6 +167,7 @@ class GoalViewDataMapper @Inject constructor(
         isDarkTheme: Boolean,
         durationFormat: DurationFormat,
         showSeconds: Boolean,
+        showZeroMinutes: Boolean = true,
     ): List<StatisticsGoalViewData> {
         val currentGoals: List<RecordTypeGoal> = when (filterType) {
             ChartFilterType.ACTIVITY -> {
@@ -215,6 +216,7 @@ class GoalViewDataMapper @Inject constructor(
                     isDarkTheme = isDarkTheme,
                     durationFormat = durationFormat,
                     showSeconds = showSeconds,
+                    showZeroMinutes = showZeroMinutes,
                 )
             }
             .sortedBy { it.goal.percent }
@@ -227,6 +229,7 @@ class GoalViewDataMapper @Inject constructor(
         isDarkTheme: Boolean,
         durationFormat: DurationFormat,
         showSeconds: Boolean,
+        showZeroMinutes: Boolean,
     ): StatisticsGoalViewData {
         return StatisticsGoalViewData(
             id = goal.id,
@@ -240,6 +243,7 @@ class GoalViewDataMapper @Inject constructor(
                 statistics = statistics,
                 durationFormat = durationFormat,
                 showSeconds = showSeconds,
+                showZeroMinutes = showZeroMinutes,
             ),
         )
     }
@@ -249,12 +253,14 @@ class GoalViewDataMapper @Inject constructor(
         statistics: Statistics?,
         durationFormat: DurationFormat,
         showSeconds: Boolean,
+        showZeroMinutes: Boolean,
     ): StatisticsGoalViewData.Goal {
         fun mapDuration(goalValue: Long): String {
             return mapDuration(
                 goalValue = goalValue,
                 showSeconds = showSeconds,
                 durationFormat = durationFormat,
+                showZeroMinutes = showZeroMinutes,
             )
         }
 
@@ -306,11 +312,13 @@ class GoalViewDataMapper @Inject constructor(
         goalValue: Long,
         showSeconds: Boolean,
         durationFormat: DurationFormat,
+        showZeroMinutes: Boolean = true,
     ): String {
         return timeMapper.formatInterval(
             interval = goalValue,
             forceSeconds = showSeconds,
             durationFormat = durationFormat,
+            showZeroMinutes = showZeroMinutes,
         )
     }
 

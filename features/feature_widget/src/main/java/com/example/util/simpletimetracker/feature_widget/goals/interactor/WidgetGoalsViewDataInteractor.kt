@@ -109,6 +109,7 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                         isDarkTheme = isDarkTheme,
                         durationFormat = durationFormat,
                         showSeconds = showSeconds,
+                        showZeroMinutes = false,
                     )
 
                     mappedGoals.forEach mappedLoop@ { mapped ->

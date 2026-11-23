@@ -484,6 +484,7 @@ class TimeMapper @Inject constructor(
         interval: Long,
         forceSeconds: Boolean,
         durationFormat: DurationFormat,
+        showZeroMinutes: Boolean = true,
     ): String {
         val dayString = resourceRepo.getString(R.string.time_day)
         val hourString = resourceRepo.getString(R.string.time_hour)
@@ -519,10 +520,10 @@ class TimeMapper @Inject constructor(
                 val willShowSeconds: Boolean
 
                 if (forceSeconds) {
-                    willShowMinutes = willShowHours || min != 0L
+                    willShowMinutes = (showZeroMinutes && willShowHours) || min != 0L
                     willShowSeconds = true
                 } else {
-                    willShowMinutes = true
+                    willShowMinutes = showZeroMinutes || !willShowHours || min != 0L
                     willShowSeconds = false
                 }
 
