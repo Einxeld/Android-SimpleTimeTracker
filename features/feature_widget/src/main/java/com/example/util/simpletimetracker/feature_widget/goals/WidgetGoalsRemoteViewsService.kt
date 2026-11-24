@@ -2,6 +2,7 @@ package com.example.util.simpletimetracker.feature_widget.goals
 
 import android.content.Context
 import android.content.Intent
+import android.view.View
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.example.util.simpletimetracker.feature_widget.R
@@ -54,7 +55,43 @@ private class WidgetGoalsRemoteViewsFactory(
                 R.id.tvWidgetGoalDetails,
                 "${item.current} / ${item.target} · ${item.subtype}",
             )
-            setProgressBar(R.id.progressWidgetGoal, 100, item.progress, false)
+            if (item.progressSegments.isEmpty()) {
+                setViewVisibility(R.id.progressWidgetGoal, View.VISIBLE)
+                setViewVisibility(R.id.widgetGoalProgressSegments, View.GONE)
+                setProgressBar(R.id.progressWidgetGoal, 100, item.progress, false)
+            } else {
+                setViewVisibility(R.id.progressWidgetGoal, View.GONE)
+                setViewVisibility(R.id.widgetGoalProgressSegments, View.VISIBLE)
+                val segmentIds = listOf(
+                    R.id.progressWidgetGoalSegment1,
+                    R.id.progressWidgetGoalSegment2,
+                    R.id.progressWidgetGoalSegment3,
+                    R.id.progressWidgetGoalSegment4,
+                    R.id.progressWidgetGoalSegment5,
+                )
+                segmentIds.forEachIndexed { index, id ->
+                    val progress = item.progressSegments.getOrNull(index)
+                    setViewVisibility(id, if (progress == null) View.GONE else View.VISIBLE)
+                    if (progress != null) setProgressBar(id, 100, progress, false)
+                }
+            }
+            val balanceText = buildList {
+                item.balance?.let(::add)
+                item.todayRemaining?.let {
+                    add(context.getString(R.string.widget_goals_today_remaining, it))
+                }
+            }.joinToString(" · ")
+            setTextViewText(R.id.tvWidgetGoalBalance, balanceText)
+            val balanceColor = when {
+                item.balance?.startsWith("+") == true -> 0xFF63C174.toInt()
+                item.balance?.startsWith("−") == true -> 0xFFFF8A80.toInt()
+                else -> 0xCCFFFFFF.toInt()
+            }
+            setInt(R.id.tvWidgetGoalBalance, "setTextColor", balanceColor)
+            setViewVisibility(
+                R.id.tvWidgetGoalBalance,
+                if (balanceText.isEmpty()) View.GONE else View.VISIBLE,
+            )
             setOnClickFillInIntent(
                 R.id.containerWidgetGoalItem,
                 Intent().putExtra(EXTRA_GOAL_ID, item.id),

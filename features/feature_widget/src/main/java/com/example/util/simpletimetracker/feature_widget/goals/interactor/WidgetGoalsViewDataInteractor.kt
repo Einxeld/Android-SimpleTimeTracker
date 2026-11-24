@@ -4,7 +4,9 @@ import com.example.util.simpletimetracker.core.interactor.FilterGoalsByDayOfWeek
 import com.example.util.simpletimetracker.core.interactor.StatisticsMediator
 import com.example.util.simpletimetracker.core.mapper.GoalViewDataMapper
 import com.example.util.simpletimetracker.core.mapper.TimeMapper
+import com.example.util.simpletimetracker.domain.base.DurationFormat
 import com.example.util.simpletimetracker.domain.prefs.interactor.PrefsInteractor
+import com.example.util.simpletimetracker.domain.recordType.extension.adjustedValue
 import com.example.util.simpletimetracker.domain.recordType.extension.value
 import com.example.util.simpletimetracker.domain.recordType.interactor.RecordTypeGoalInteractor
 import com.example.util.simpletimetracker.domain.recordType.interactor.RecordTypeInteractor
@@ -15,6 +17,8 @@ import com.example.util.simpletimetracker.domain.statistics.model.RangeLength
 import com.example.util.simpletimetracker.feature_widget.goals.viewData.WidgetGoalViewData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Calendar
+import kotlin.math.abs
 import javax.inject.Inject
 
 class WidgetGoalsViewDataInteractor @Inject constructor(
@@ -51,17 +55,28 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
         val durationFormat = prefsInteractor.getDurationFormat()
         val showSeconds = prefsInteractor.getShowSeconds()
         val isDarkTheme = prefsInteractor.getDarkMode()
+        val filterTypes = listOf(
+            ChartFilterType.ACTIVITY,
+            ChartFilterType.CATEGORY,
+            ChartFilterType.RECORD_TAG,
+        )
+        val today = Calendar.getInstance().apply { timeInMillis = dailyRange.timeStarted }
+            .get(Calendar.DAY_OF_WEEK)
+        val isWorkday = today != Calendar.SATURDAY && today != Calendar.SUNDAY
+        val todayStatisticsByFilter = filterTypes.associateWith { filterType ->
+            statisticsMediator.getStatistics(
+                filterType = filterType,
+                filteredIds = emptyList(),
+                range = dailyRange,
+                forceSeconds = true,
+            )
+        }
         val periods = listOf(
             Period(RecordTypeGoal.Range.Daily, RangeLength.Day),
             Period(RecordTypeGoal.Range.Weekly, RangeLength.Week),
             Period(RecordTypeGoal.Range.Monthly, RangeLength.Month),
             Period(RecordTypeGoal.Range.Yearly, RangeLength.Year),
             Period(RecordTypeGoal.Range.Overall, RangeLength.All),
-        )
-        val filterTypes = listOf(
-            ChartFilterType.ACTIVITY,
-            ChartFilterType.CATEGORY,
-            ChartFilterType.RECORD_TAG,
         )
         val dataHoldersByFilter = filterTypes.associateWith { filterType ->
             statisticsMediator.getDataHolders(
@@ -92,12 +107,16 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                     }
                     if (goalsForFilter.isEmpty()) return@filterLoop
 
-                    val statistics = statisticsMediator.getStatistics(
-                        filterType = filterType,
-                        filteredIds = emptyList(),
-                        range = range,
-                        forceSeconds = true,
-                    )
+                    val statistics = if (period.rangeLength is RangeLength.Day) {
+                        todayStatisticsByFilter.getValue(filterType)
+                    } else {
+                        statisticsMediator.getStatistics(
+                            filterType = filterType,
+                            filteredIds = emptyList(),
+                            range = range,
+                            forceSeconds = true,
+                        )
+                    }
                     val mappedGoals = goalViewDataMapper.mapStatisticsList(
                         goals = goalsForFilter,
                         types = types,
@@ -114,6 +133,98 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
 
                     mappedGoals.forEach mappedLoop@ { mapped ->
                         val goal = goalsForFilter.firstOrNull { it.id == mapped.id } ?: return@mappedLoop
+                        val isDurationGoal = goal.type is RecordTypeGoal.Type.Duration
+                        val currentDuration = statistics
+                            .firstOrNull { it.id == goal.idData.value }
+                            ?.data?.duration ?: 0L
+                        val currentTodayDuration = todayStatisticsByFilter
+                            .getValue(filterType)
+                            .firstOrNull { it.id == goal.idData.value }
+                            ?.data?.duration ?: 0L
+                        val relatedGoals = applicableGoals.filter {
+                            it.idData == goal.idData && it.subtype == goal.subtype &&
+                                it.type is RecordTypeGoal.Type.Duration
+                        }
+                        val dailyGoal = relatedGoals.firstOrNull { it.range is RecordTypeGoal.Range.Daily }
+                        val weeklyGoal = goals.firstOrNull {
+                            it.idData == goal.idData && it.subtype == goal.subtype &&
+                                it.type is RecordTypeGoal.Type.Duration &&
+                                it.range is RecordTypeGoal.Range.Weekly
+                        }
+                        val monthlyGoal = goals.firstOrNull {
+                            it.idData == goal.idData && it.subtype == goal.subtype &&
+                                it.type is RecordTypeGoal.Type.Duration &&
+                                it.range is RecordTypeGoal.Range.Monthly
+                        }
+                        val dailyTarget = dailyGoal?.adjustedValue
+                            ?: weeklyGoal?.adjustedValue?.div(WORKDAYS_PER_WEEK)
+                            ?: monthlyGoal?.adjustedValue?.div(STANDARD_WORKDAYS_PER_MONTH)
+                        val previousWorkdays = when (period.rangeLength) {
+                            is RangeLength.Week, is RangeLength.Month -> countWorkdays(
+                                start = range.timeStarted,
+                                end = dailyRange.timeStarted,
+                            )
+                            else -> 0
+                        }
+                        val expectedBeforeToday = dailyTarget?.let { targetPerDay ->
+                            val expected = previousWorkdays * targetPerDay
+                            when (period.goalRange) {
+                                is RecordTypeGoal.Range.Weekly,
+                                is RecordTypeGoal.Range.Monthly,
+                                -> expected.coerceAtMost(goal.adjustedValue)
+                                else -> expected
+                            }
+                        }
+                        val balance = if (!isDurationGoal || goal.subtype != RecordTypeGoal.Subtype.Goal) {
+                            null
+                        } else when (period.goalRange) {
+                            is RecordTypeGoal.Range.Daily -> (currentDuration - goal.adjustedValue)
+                                .takeIf { it > 0L }
+                            is RecordTypeGoal.Range.Weekly, is RecordTypeGoal.Range.Monthly -> {
+                                if (expectedBeforeToday == null) null else {
+                                    val previousDuration = (currentDuration - currentTodayDuration).coerceAtLeast(0L)
+                                    (previousDuration - expectedBeforeToday).takeIf { it != 0L }
+                                }
+                            }
+                            else -> null
+                        }?.let { formatSignedDuration(it, durationFormat, showSeconds) }
+                        val todayRemaining = if (
+                            isDurationGoal && goal.subtype == RecordTypeGoal.Subtype.Goal &&
+                            dailyTarget != null && isWorkday
+                        ) {
+                            when (period.goalRange) {
+                                is RecordTypeGoal.Range.Daily -> null
+                                is RecordTypeGoal.Range.Weekly, is RecordTypeGoal.Range.Monthly -> {
+                                    val previousDuration = (currentDuration - currentTodayDuration).coerceAtLeast(0L)
+                                    val earnedAhead = previousDuration - (expectedBeforeToday ?: 0L)
+                                    val paceRemaining = (dailyTarget - earnedAhead - currentTodayDuration)
+                                        .coerceAtLeast(0L)
+                                    minOf(paceRemaining, (goal.adjustedValue - currentDuration).coerceAtLeast(0L))
+                                }
+                                else -> null
+                            }?.let {
+                                timeMapper.formatInterval(it, showSeconds, durationFormat, showZeroMinutes = false)
+                            }
+                        } else {
+                            null
+                        }
+                        val progressSegments = if (isDurationGoal) {
+                            when (period.goalRange) {
+                                is RecordTypeGoal.Range.Weekly -> WidgetGoalViewData.progressForSegments(
+                                    current = currentDuration,
+                                    target = goal.adjustedValue,
+                                    count = WORKDAYS_PER_WEEK,
+                                )
+                                is RecordTypeGoal.Range.Monthly -> WidgetGoalViewData.progressForSegments(
+                                    current = currentDuration,
+                                    target = goal.adjustedValue,
+                                    count = WEEKS_PER_MONTH,
+                                )
+                                else -> emptyList()
+                            }
+                        } else {
+                            emptyList()
+                        }
                         add(
                             WidgetGoalViewData(
                                 id = mapped.id,
@@ -125,6 +236,9 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                                 percent = mapped.goal.goalPercent,
                                 progress = WidgetGoalViewData.progressForPercent(mapped.goal.percent),
                                 color = mapped.color,
+                                progressSegments = progressSegments,
+                                balance = balance,
+                                todayRemaining = todayRemaining,
                             ),
                         )
                     }
@@ -137,4 +251,42 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
         val goalRange: RecordTypeGoal.Range,
         val rangeLength: RangeLength,
     )
+
+    private fun countWorkdays(
+        start: Long,
+        end: Long,
+    ): Long {
+        val calendar = Calendar.getInstance().apply { timeInMillis = start }
+        var result = 0L
+        while (calendar.timeInMillis < end) {
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            if (dayOfWeek != Calendar.SATURDAY && dayOfWeek != Calendar.SUNDAY) {
+                result++
+            }
+            calendar.add(Calendar.DATE, 1)
+        }
+        return result
+    }
+
+    private fun formatSignedDuration(
+        duration: Long,
+        durationFormat: DurationFormat,
+        showSeconds: Boolean,
+    ): String {
+        val sign = if (duration >= 0L) "+" else "−"
+        val formatted = timeMapper.formatInterval(
+            interval = abs(duration),
+            forceSeconds = showSeconds,
+            durationFormat = durationFormat,
+            showZeroMinutes = false,
+        )
+        return "$sign$formatted"
+    }
+
+    private companion object {
+        // Goal pacing is based on a standard Monday-Friday workweek.
+        const val WORKDAYS_PER_WEEK = 5
+        const val WEEKS_PER_MONTH = 4
+        const val STANDARD_WORKDAYS_PER_MONTH = WORKDAYS_PER_WEEK * WEEKS_PER_MONTH
+    }
 }

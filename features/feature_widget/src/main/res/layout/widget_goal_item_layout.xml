@@ -55,4 +55,77 @@
         android:progress="0"
         android:progressBackgroundTint="#55FFFFFF"
         android:progressTint="#FF63C174" />
+
+    <LinearLayout
+        android:id="@+id/widgetGoalProgressSegments"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="3dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/progressWidgetGoalSegment1"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progressBackgroundTint="#55FFFFFF"
+            android:progressTint="#FF63C174" />
+
+        <ProgressBar
+            android:id="@+id/progressWidgetGoalSegment2"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progressBackgroundTint="#55FFFFFF"
+            android:progressTint="#FF63C174" />
+
+        <ProgressBar
+            android:id="@+id/progressWidgetGoalSegment3"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progressBackgroundTint="#55FFFFFF"
+            android:progressTint="#FF63C174" />
+
+        <ProgressBar
+            android:id="@+id/progressWidgetGoalSegment4"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progressBackgroundTint="#55FFFFFF"
+            android:progressTint="#FF63C174" />
+
+        <ProgressBar
+            android:id="@+id/progressWidgetGoalSegment5"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:max="100"
+            android:progressBackgroundTint="#55FFFFFF"
+            android:progressTint="#FF63C174" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvWidgetGoalBalance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#CCFFFFFF"
+        android:textSize="10sp"
+        android:visibility="gone" />
 </LinearLayout>
