@@ -58,6 +58,7 @@ class WidgetGoalsProvider : AppWidgetProvider() {
             setRemoteAdapter(R.id.listWidgetGoals, adapterIntent)
             setEmptyView(R.id.listWidgetGoals, R.id.tvWidgetGoalsEmpty)
             setPendingIntentTemplate(R.id.listWidgetGoals, getOpenIntent(context, appWidgetId))
+            setOnClickPendingIntent(R.id.widgetGoalsRoot, getOpenIntent(context, appWidgetId))
             setOnClickPendingIntent(R.id.btnWidgetGoalsRefresh, getRefreshIntent(context, appWidgetId))
         }
         appWidgetManager.updateAppWidget(appWidgetId, views)

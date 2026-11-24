@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetGoalsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_widget_goals"
@@ -8,26 +9,16 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="32dp">
-
-        <TextView
-            android:id="@+id/tvWidgetGoalsTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:text="@string/widget_goals_name"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        android:layout_height="24dp">
 
         <ImageButton
             android:id="@+id/btnWidgetGoalsRefresh"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_alignParentEnd="true"
             android:background="@android:color/transparent"
             android:contentDescription="@string/widget_refresh"
-            android:padding="8dp"
+            android:padding="4dp"
             android:src="@drawable/refresh"
             android:tint="@android:color/white" />
     </RelativeLayout>
