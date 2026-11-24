@@ -54,7 +54,15 @@
         android:max="100"
         android:progress="0"
         android:progressBackgroundTint="#55FFFFFF"
-        android:progressTint="#FF63C174" />
+        android:progressTint="#FF64B5F6" />
+
+    <ImageView
+        android:id="@+id/imageWidgetGoalDailyProgress"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="3dp"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/widgetGoalProgressSegments"

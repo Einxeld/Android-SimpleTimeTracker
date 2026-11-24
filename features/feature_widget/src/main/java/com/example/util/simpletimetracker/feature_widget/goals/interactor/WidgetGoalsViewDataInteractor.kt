@@ -60,14 +60,25 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
             ChartFilterType.CATEGORY,
             ChartFilterType.RECORD_TAG,
         )
-        val today = Calendar.getInstance().apply { timeInMillis = dailyRange.timeStarted }
-            .get(Calendar.DAY_OF_WEEK)
-        val isWorkday = today != Calendar.SATURDAY && today != Calendar.SUNDAY
+        val weekRange = timeMapper.getRangeStartAndEnd(
+            rangeLength = RangeLength.Week,
+            shift = 0,
+            firstDayOfWeek = firstDayOfWeek,
+            startOfDayShift = startOfDayShift,
+        )
         val todayStatisticsByFilter = filterTypes.associateWith { filterType ->
             statisticsMediator.getStatistics(
                 filterType = filterType,
                 filteredIds = emptyList(),
                 range = dailyRange,
+                forceSeconds = true,
+            )
+        }
+        val weekStatisticsByFilter = filterTypes.associateWith { filterType ->
+            statisticsMediator.getStatistics(
+                filterType = filterType,
+                filteredIds = emptyList(),
+                range = weekRange,
                 forceSeconds = true,
             )
         }
@@ -90,12 +101,16 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                 val periodGoals = applicableGoals.filter { it.range == period.goalRange }
                 if (periodGoals.isEmpty()) return@periodLoop
 
-                val range = timeMapper.getRangeStartAndEnd(
-                    rangeLength = period.rangeLength,
-                    shift = 0,
-                    firstDayOfWeek = firstDayOfWeek,
-                    startOfDayShift = startOfDayShift,
-                )
+                val range = if (period.rangeLength is RangeLength.Week) {
+                    weekRange
+                } else {
+                    timeMapper.getRangeStartAndEnd(
+                        rangeLength = period.rangeLength,
+                        shift = 0,
+                        firstDayOfWeek = firstDayOfWeek,
+                        startOfDayShift = startOfDayShift,
+                    )
+                }
 
                 filterTypes.forEach filterLoop@ { filterType ->
                     val goalsForFilter = periodGoals.filter { goal ->
@@ -107,10 +122,10 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                     }
                     if (goalsForFilter.isEmpty()) return@filterLoop
 
-                    val statistics = if (period.rangeLength is RangeLength.Day) {
-                        todayStatisticsByFilter.getValue(filterType)
-                    } else {
-                        statisticsMediator.getStatistics(
+                    val statistics = when (period.rangeLength) {
+                        is RangeLength.Day -> todayStatisticsByFilter.getValue(filterType)
+                        is RangeLength.Week -> weekStatisticsByFilter.getValue(filterType)
+                        else -> statisticsMediator.getStatistics(
                             filterType = filterType,
                             filteredIds = emptyList(),
                             range = range,
@@ -141,6 +156,10 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                             .getValue(filterType)
                             .firstOrNull { it.id == goal.idData.value }
                             ?.data?.duration ?: 0L
+                        val currentWeekDuration = weekStatisticsByFilter
+                            .getValue(filterType)
+                            .firstOrNull { it.id == goal.idData.value }
+                            ?.data?.duration ?: 0L
                         val relatedGoals = applicableGoals.filter {
                             it.idData == goal.idData && it.subtype == goal.subtype &&
                                 it.type is RecordTypeGoal.Type.Duration
@@ -159,8 +178,14 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                         val dailyTarget = dailyGoal?.adjustedValue
                             ?: weeklyGoal?.adjustedValue?.div(WORKDAYS_PER_WEEK)
                             ?: monthlyGoal?.adjustedValue?.div(STANDARD_WORKDAYS_PER_MONTH)
-                        val previousWorkdays = when (period.rangeLength) {
-                            is RangeLength.Week, is RangeLength.Month -> countWorkdays(
+                        val workdaysBeforeTodayInWeek = countWorkdays(
+                            start = weekRange.timeStarted,
+                            end = dailyRange.timeStarted,
+                        )
+                        val previousWorkdays = when (period.goalRange) {
+                            is RecordTypeGoal.Range.Daily, is RecordTypeGoal.Range.Weekly ->
+                                workdaysBeforeTodayInWeek
+                            is RecordTypeGoal.Range.Monthly -> countWorkdays(
                                 start = range.timeStarted,
                                 end = dailyRange.timeStarted,
                             )
@@ -175,11 +200,27 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                                 else -> expected
                             }
                         }
+                        val dailyCarry = if (
+                            isDurationGoal && goal.subtype == RecordTypeGoal.Subtype.Goal &&
+                            period.goalRange is RecordTypeGoal.Range.Daily && dailyTarget != null
+                        ) {
+                            val previousDuration = (currentWeekDuration - currentTodayDuration).coerceAtLeast(0L)
+                            val expected = (workdaysBeforeTodayInWeek * dailyTarget)
+                                .coerceAtMost(weeklyGoal?.adjustedValue ?: dailyTarget * WORKDAYS_PER_WEEK)
+                            previousDuration - expected
+                        } else {
+                            null
+                        }
                         val balance = if (!isDurationGoal || goal.subtype != RecordTypeGoal.Subtype.Goal) {
                             null
                         } else when (period.goalRange) {
-                            is RecordTypeGoal.Range.Daily -> (currentDuration - goal.adjustedValue)
-                                .takeIf { it > 0L }
+                            is RecordTypeGoal.Range.Daily -> dailyCarry?.let {
+                                WidgetGoalViewData.dailyBalanceForDisplay(
+                                    carry = it,
+                                    current = currentTodayDuration,
+                                    target = goal.adjustedValue,
+                                )
+                            }?.takeIf { it != 0L }
                             is RecordTypeGoal.Range.Weekly, is RecordTypeGoal.Range.Monthly -> {
                                 if (expectedBeforeToday == null) null else {
                                     val previousDuration = (currentDuration - currentTodayDuration).coerceAtLeast(0L)
@@ -188,26 +229,6 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                             }
                             else -> null
                         }?.let { formatSignedDuration(it, durationFormat, showSeconds) }
-                        val todayRemaining = if (
-                            isDurationGoal && goal.subtype == RecordTypeGoal.Subtype.Goal &&
-                            dailyTarget != null && isWorkday
-                        ) {
-                            when (period.goalRange) {
-                                is RecordTypeGoal.Range.Daily -> null
-                                is RecordTypeGoal.Range.Weekly, is RecordTypeGoal.Range.Monthly -> {
-                                    val previousDuration = (currentDuration - currentTodayDuration).coerceAtLeast(0L)
-                                    val earnedAhead = previousDuration - (expectedBeforeToday ?: 0L)
-                                    val paceRemaining = (dailyTarget - earnedAhead - currentTodayDuration)
-                                        .coerceAtLeast(0L)
-                                    minOf(paceRemaining, (goal.adjustedValue - currentDuration).coerceAtLeast(0L))
-                                }
-                                else -> null
-                            }?.let {
-                                timeMapper.formatInterval(it, showSeconds, durationFormat, showZeroMinutes = false)
-                            }
-                        } else {
-                            null
-                        }
                         val progressSegments = if (isDurationGoal) {
                             when (period.goalRange) {
                                 is RecordTypeGoal.Range.Weekly -> WidgetGoalViewData.progressForSegments(
@@ -238,7 +259,13 @@ class WidgetGoalsViewDataInteractor @Inject constructor(
                                 color = mapped.color,
                                 progressSegments = progressSegments,
                                 balance = balance,
-                                todayRemaining = todayRemaining,
+                                dailyProgress = dailyCarry?.let {
+                                    WidgetGoalViewData.DailyProgress(
+                                        carry = it,
+                                        current = currentTodayDuration,
+                                        target = goal.adjustedValue,
+                                    )
+                                },
                             ),
                         )
                     }

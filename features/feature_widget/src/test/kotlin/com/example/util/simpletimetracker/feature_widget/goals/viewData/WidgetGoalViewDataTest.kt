@@ -34,4 +34,26 @@ class WidgetGoalViewDataTest {
         )
         assertEquals(emptyList<Int>(), WidgetGoalViewData.progressForSegments(current = 1, target = 0, count = 4))
     }
+
+    @Test
+    fun `daily balance consumes carried overtime before showing new overtime`() {
+        val minute = 60 * 1000L
+        val hour = 60 * minute
+
+        assertEquals(20 * minute, WidgetGoalViewData.dailyBalanceForDisplay(20 * minute, 0, 8 * hour))
+        assertEquals(10 * minute, WidgetGoalViewData.dailyBalanceForDisplay(20 * minute, 10 * minute, 8 * hour))
+        assertEquals(0L, WidgetGoalViewData.dailyBalanceForDisplay(20 * minute, 7 * hour + 40 * minute, 8 * hour))
+        assertEquals(20 * minute, WidgetGoalViewData.dailyBalanceForDisplay(20 * minute, 8 * hour, 8 * hour))
+    }
+
+    @Test
+    fun `daily work first recovers carried deficit`() {
+        val minute = 60 * 1000L
+        val hour = 60 * minute
+
+        assertEquals(-20 * minute, WidgetGoalViewData.dailyBalanceForDisplay(-20 * minute, 0, 8 * hour))
+        assertEquals(-10 * minute, WidgetGoalViewData.dailyBalanceForDisplay(-20 * minute, 10 * minute, 8 * hour))
+        assertEquals(0L, WidgetGoalViewData.dailyBalanceForDisplay(-20 * minute, 20 * minute, 8 * hour))
+        assertEquals(20 * minute, WidgetGoalViewData.dailyBalanceForDisplay(-20 * minute, 8 * hour + 40 * minute, 8 * hour))
+    }
 }

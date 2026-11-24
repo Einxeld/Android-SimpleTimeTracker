@@ -613,7 +613,6 @@ CSV-файл должен содержать следующие столбцы, 
     <string name="widget_load_error">Не найден</string>
     <string name="widget_statistics_ignore_new_items">Игнорировать новые элементы, добавленные позже</string>
     <string name="widget_universal_open_app">Открыть приложение</string>
-    <string name="widget_goals_today_remaining">Сегодня можно ещё %1$s</string>
 
     <!--  Notification  -->
     <string name="notification_inactivity_title">Напоминание о бездействии</string>
